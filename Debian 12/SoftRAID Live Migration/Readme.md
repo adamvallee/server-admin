@@ -9,19 +9,16 @@ I needed to modify a server's disk configuration from 4 /dev/sd* to 2 RAIDs (/de
 The script is really specific to the system that I was running it on, however it may be helpful for someone who needs to create their own script to do a similar task. I am saving it for future reference.
 
 
-Running the Script:
-
-    Save the script to a file, for example, migrate_to_raid.sh.
-    Make the script executable:
-
-    sh
-
-chmod +x migrate_to_raid.sh
-
-Run the script:
+# Running the Script:
+Save the script to a file, for example, migrate_to_raid.sh.
+Make the script executable:
 
 sh
 
-    sudo ./migrate_to_raid.sh
+chmod +x migrate_to_raid.sh
+
+sh
+
+sudo ./migrate_to_raid.sh
 
 Please review and test the script carefully in your environment before using it on a production system.
