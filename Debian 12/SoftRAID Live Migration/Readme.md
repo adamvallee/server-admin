@@ -30,6 +30,7 @@ Or you can download the script to your current working directory:
 
 Please review and test the script carefully in your environment before using it on a production system.
 
+
 # README.md
 
 ## Migration to RAID Device Script
@@ -57,5 +58,104 @@ Migrating to a RAID 1 setup provides data redundancy. If one disk fails, the sys
 Below is a detailed explanation of each step in the script:
 
 #### Step 1: Detect the Current Disk Layout
-```bash
+\`\`\`bash
 lsblk | tee -a $LOGFILE
+\`\`\`
+- **What**: Lists all block devices and their mount points.
+- **Why**: To document the current disk layout and identify the root device.
+
+\`\`\`bash
+ROOT_DEVICE=$(df / | tail -1 | awk '{print $1}')
+\`\`\`
+- **What**: Determines the current root device.
+- **Why**: To identify the partition where the operating system is currently installed.
+
+#### Step 2: Verify the RAID Device
+\`\`\`bash
+mdadm --detail $RAID_DEVICE | tee -a $LOGFILE
+\`\`\`
+- **What**: Provides detailed information about the RAID device.
+- **Why**: To ensure the RAID device is correctly configured and operational.
+
+#### Step 3: Unmount the RAID Device if Mounted
+\`\`\`bash
+if mountpoint -q /mnt/raid; then
+    umount /mnt/raid
+fi
+\`\`\`
+- **What**: Checks if the RAID device is mounted and unmounts it if necessary.
+- **Why**: To avoid formatting a mounted filesystem, which could cause data loss or corruption.
+
+#### Step 4: Migrate the OS to the RAID Device
+\`\`\`bash
+mkfs.ext4 $RAID_DEVICE
+mkdir -p /mnt/raid
+mount $RAID_DEVICE /mnt/raid
+\`\`\`
+- **What**: Formats the RAID device with the ext4 filesystem and mounts it.
+- **Why**: Prepares the RAID device for data migration.
+
+\`\`\`bash
+rsync -aAXv / /mnt/raid --exclude={"/mnt/raid","/proc","/tmp","/dev","/sys","/run","/mnt"}
+\`\`\`
+- **What**: Copies the entire filesystem to the RAID device, excluding certain directories.
+- **Why**: Migrates the operating system files to the RAID device.
+
+#### Step 5: Update the Boot Loader Configuration
+\`\`\`bash
+UUID=$(blkid -s UUID -o value $RAID_DEVICE)
+sed -i "s|$(blkid -s UUID -o value $ROOT_DEVICE)|$UUID|g" /mnt/raid/etc/fstab
+sed -i "s|$(blkid -s UUID -o value $ROOT_DEVICE)|$UUID|g" /mnt/raid/boot/grub/grub.cfg
+sed -i "s|$(blkid -s UUID -o value $ROOT_DEVICE)|$UUID|g" /mnt/raid/etc/default/grub
+\`\`\`
+- **What**: Updates UUID references in configuration files to point to the new RAID device.
+- **Why**: Ensures the system references the correct device for the root filesystem and boot loader.
+
+\`\`\`bash
+mount --bind /dev /mnt/raid/dev
+mount --bind /proc /mnt/raid/proc
+mount --bind /sys /mnt/raid/sys
+mount --bind /tmp /mnt/raid/tmp
+\`\`\`
+- **What**: Bind mounts necessary filesystems into the chroot environment.
+- **Why**: Allows the chroot environment to function properly, mimicking the real root environment.
+
+\`\`\`bash
+mount $EFI_PARTITION /mnt/raid/boot/efi
+\`\`\`
+- **What**: Mounts the EFI partition in the chroot environment.
+- **Why**: Ensures the EFI directory is available for the \`grub-install\` command.
+
+\`\`\`bash
+chroot /mnt/raid grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck
+chroot /mnt/raid update-grub
+\`\`\`
+- **What**: Installs and updates GRUB in the chroot environment.
+- **Why**: Configures the boot loader to boot from the RAID device.
+
+#### Step 6: Document the Process
+\`\`\`bash
+log "\n# Migration Completed\n"
+log "The operating system has been successfully migrated to $RAID_DEVICE."
+log "Please verify the changes and reboot your system."
+\`\`\`
+- **What**: Logs the completion of the migration process.
+- **Why**: Provides a summary and documentation of the migration steps.
+
+### How to Run the Script
+1. Save the script to a file, for example, \`migrate_to_raid.sh\`.
+2. Make the script executable:
+   \`\`\`sh
+   chmod +x migrate_to_raid.sh
+   \`\`\`
+3. Run the script:
+   \`\`\`sh
+   sudo ./migrate_to_raid.sh
+   \`\`\`
+
+### Additional Notes
+- **Backup Your Data**: Ensure you have a full backup before running the script to prevent data loss.
+- **Test in a Safe Environment**: Test the script in a non-production environment to verify its functionality.
+- **Permissions**: The script requires root permissions to perform the migration and update the boot loader.
+
+By following these steps, you can migrate your Debian 12 operating system to a RAID 1 device, enhancing data redundancy and reliability.
