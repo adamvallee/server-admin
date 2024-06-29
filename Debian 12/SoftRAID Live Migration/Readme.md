@@ -11,10 +11,16 @@ The script is really specific to the system that I was running it on, however it
 
 ## Using this Script:
 
+Get the script: [migrate_to_raid.sh](https://raw.githubusercontent.com/adamvallee/server-admin/main/Debian%2012/SoftRAID%20Live%20Migration/migrate_to_raid.sh)
+
 ### Save the script to a file
-For example, copy and paste the code into "migrate_to_raid.sh".
+For example, copy and paste the code into "migrate_to_raid.sh" using nano.
 
     nano migrate_to_raid.sh
+
+Or you can download the script to your current working directory:
+
+    wget https://raw.githubusercontent.com/adamvallee/server-admin/main/Debian%2012/SoftRAID%20Live%20Migration/migrate_to_raid.sh
 
 ### Make the script executable:
     chmod +x migrate_to_raid.sh
